@@ -7,9 +7,19 @@ import(
     "time"
     "strings"
 )
+
 func main() {
+	query := "the dark knight"
+	duckDuckStringArr := []string{"http://api.duckduckgo.com/?q=", query, "&format=json"}
+	googleStringArr := []string{"https://www.googleapis.com/customsearch/v1?q=", query}
+	duckurl := strings.Join(duckDuckStringArr, "")
+	googleurl := strings.Join(googleStringArr, "")	
+	fmt.Println(duckurl)
+	fmt.Println(googleurl)
+	
 	//fmt.Println(duckDuckGoSearch("sweets"))
-	fmt.Println(googleSearch("the dark knight"))
+	//fmt.Println(googleSearch(query))
+
 }
 
 func duckDuckGoSearch(query string) string{
@@ -43,7 +53,6 @@ func duckDuckGoSearch(query string) string{
 }
 
 func googleSearch(query string) string{
-	query = strings.Replace(query, " ", "", -1)
 	timeout := time.Duration(time.Second*5)  //timeout set to one second
 	client := http.Client{
     	Timeout: timeout,
