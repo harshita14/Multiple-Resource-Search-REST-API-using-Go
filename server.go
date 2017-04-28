@@ -43,6 +43,7 @@ func duckDuckGoSearch(query string) string{
 }
 
 func googleSearch(query string) string{
+	query = strings.Replace(query, " ", "", -1)
 	timeout := time.Duration(time.Second*5)  //timeout set to one second
 	client := http.Client{
     	Timeout: timeout,
@@ -64,7 +65,7 @@ func googleSearch(query string) string{
     //bodyString is the json response as a string
     bodyString := string(bodyBytes)
     //slicing bodystring for getting first result
-    posFirst := strings.Index(bodyString, "\"title\":")
+    posFirst := strings.Index(bodyString, "\"snippet\":")
     //8 is added to remove the "Text": part
     result := bodyString[posFirst+10:]             
     posLast := strings.Index(result, "\",")
