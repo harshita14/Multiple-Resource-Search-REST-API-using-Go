@@ -12,17 +12,27 @@ func main() {
 	query := "the dark knight"
 	duckDuckStringArr := []string{"http://api.duckduckgo.com/?q=", query, "&format=json"}
 	googleStringArr := []string{"https://www.googleapis.com/customsearch/v1?q=", query}
+	
+	//URL strings to be printed in json response
 	duckurl := strings.Join(duckDuckStringArr, "")
 	googleurl := strings.Join(googleStringArr, "")	
 	fmt.Println(duckurl)
 	fmt.Println(googleurl)
-	
-	//fmt.Println(duckDuckGoSearch("sweets"))
-	//fmt.Println(googleSearch(query))
 
+	//using a response channel to be used with goroutines
+	response := make(chan string)
+	search(query, response)
+	fmt.Println(<-response)
+	fmt.Println(<-response)
+	
 }
 
-func duckDuckGoSearch(query string) string{
+func search(query string, ch chan<-string){
+	go duckDuckGoSearch(query, ch)
+	go googleSearch(query, ch)
+}
+
+func duckDuckGoSearch(query string, ch chan<-string){
 	timeout := time.Duration(time.Second)  //timeout set to one second
 	client := http.Client{
     	Timeout: timeout,
@@ -49,10 +59,10 @@ func duckDuckGoSearch(query string) string{
     //8 is added to remove the "Text": part
     result := bodyString[posFirst+8:]             
     posLast := strings.Index(result, "\"}")
-    return result[:posLast]
+    ch <- result[:posLast]
 }
 
-func googleSearch(query string) string{
+func googleSearch(query string, ch chan<-string){
 	timeout := time.Duration(time.Second*5)  //timeout set to one second
 	client := http.Client{
     	Timeout: timeout,
@@ -78,5 +88,5 @@ func googleSearch(query string) string{
     //8 is added to remove the "Text": part
     result := bodyString[posFirst+10:]             
     posLast := strings.Index(result, "\",")
-    return result[:posLast]
+    ch <- result[:posLast]
 }
