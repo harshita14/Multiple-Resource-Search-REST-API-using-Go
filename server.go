@@ -6,20 +6,25 @@ import(
     "io/ioutil"
     "time"
     "strings"
+    "github.com/julienschmidt/httprouter"
 )
 
 func main() {
-	query := "the dark knight"
-	//using a response channel to be used with goroutines
-	query = strings.Replace(query, " ", "+", -1)
-	response := make(chan string)
-	search(query, response)
-	resultfirst := <-response
-	resultsecond := <-response
-	query = strings.Replace(query, "+", " ", -1)
-	output := "{\"query\": \"%s\",\"results\": {%s,%s}}"
-	output = fmt.Sprintf(output, query, resultfirst, resultsecond)
-	fmt.Println(output)
+	r := httprouter.New()
+    // Add a handler on /:querystr
+    r.GET("/:querystr", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+        query := p.ByName("querystr")
+        //using a response channel to be used with goroutines
+        response := make(chan string)
+        search(query, response)
+        resultfirst := <-response
+        resultsecond := <-response
+        output := "{\"query\": \"%s\",\"results\": {%s,%s}}"
+        output = fmt.Sprintf(output, query, resultfirst, resultsecond)
+        fmt.Fprint(w, output)
+    })
+    // the server runs here
+    http.ListenAndServe("localhost:3000", r)
 }
 
 //function which launches different goroutines for each search
@@ -90,9 +95,9 @@ func googleSearch(query string, ch chan<-string){
     //bodyString is the json response as a string
     bodyString := string(bodyBytes)
     //slicing bodystring for getting first result
-    posFirst := strings.Index(bodyString, "\"snippet\":")
-    //12 is added to remove the "Text": part
-    result := bodyString[posFirst+12:]             
+    posFirst := strings.Index(bodyString, "\"title\":")
+    //8 is added to remove the "Text": part
+    result := bodyString[posFirst+10:]             
     posLast := strings.Index(result, "\",")
     result = result[:posLast]
     jsonString := "\"google\": {\"url\": \"%s\",\"text\": \"%s\"}"
