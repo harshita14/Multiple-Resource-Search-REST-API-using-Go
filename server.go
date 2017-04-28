@@ -65,7 +65,7 @@ func googleSearch(query string) string{
     //bodyString is the json response as a string
     bodyString := string(bodyBytes)
     //slicing bodystring for getting first result
-    posFirst := strings.Index(bodyString, "\"snippet\":")
+    posFirst := strings.Index(bodyString, "\"title\":")
     //8 is added to remove the "Text": part
     result := bodyString[posFirst+10:]             
     posLast := strings.Index(result, "\",")
