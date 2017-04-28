@@ -11,11 +11,15 @@ import(
 func main() {
 	query := "the dark knight"
 	//using a response channel to be used with goroutines
+	query = strings.Replace(query, " ", "+", -1)
 	response := make(chan string)
 	search(query, response)
-	fmt.Println(<-response)
-	fmt.Println(<-response)
-	
+	resultfirst := <-response
+	resultsecond := <-response
+	query = strings.Replace(query, "+", " ", -1)
+	output := "{\"query\": \"%s\",\"results\": {%s,%s}}"
+	output = fmt.Sprintf(output, query, resultfirst, resultsecond)
+	fmt.Println(output)
 }
 
 //function which launches different goroutines for each search
@@ -56,7 +60,7 @@ func duckDuckGoSearch(query string, ch chan<-string){
     result := bodyString[posFirst+8:]             
     posLast := strings.Index(result, "\"}")
     result = result[:posLast]
-    jsonString := "{\"duckduckgo\": {\"url\": \"%s\",\"text\": \"%s\"}"
+    jsonString := "\"duckduckgo\": {\"url\": \"%s\",\"text\": \"%s\"}"
     ch <- fmt.Sprintf(jsonString, duckurl, result)
 }
 
@@ -86,11 +90,11 @@ func googleSearch(query string, ch chan<-string){
     //bodyString is the json response as a string
     bodyString := string(bodyBytes)
     //slicing bodystring for getting first result
-    posFirst := strings.Index(bodyString, "\"title\":")
-    //8 is added to remove the "Text": part
-    result := bodyString[posFirst+10:]             
+    posFirst := strings.Index(bodyString, "\"snippet\":")
+    //12 is added to remove the "Text": part
+    result := bodyString[posFirst+12:]             
     posLast := strings.Index(result, "\",")
     result = result[:posLast]
-    jsonString := "{\"google\": {\"url\": \"%s\",\"text\": \"%s\"}"
+    jsonString := "\"google\": {\"url\": \"%s\",\"text\": \"%s\"}"
     ch <- fmt.Sprintf(jsonString, googleurl, result)
 }
