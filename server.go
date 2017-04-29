@@ -1,6 +1,7 @@
 package main
 
 import(
+	"os"
 	"fmt"
     "net/http"
     "io/ioutil"
@@ -24,7 +25,12 @@ func main() {
         fmt.Fprint(w, output)
     })
     // the server runs here
-    http.ListenAndServe("localhost:3000", r)
+    port := os.Getenv("PORT")
+    if port == ""{
+    	port = "4747"
+    }
+    listenURL := fmt.Sprintf(":%s", port)
+    http.ListenAndServe(listenURL, r)
 }
 
 //function which launches different goroutines for each search
@@ -38,7 +44,7 @@ func duckDuckGoSearch(query string, ch chan<-string){
 	duckDuckStringArr := []string{"http://api.duckduckgo.com/?q=", query, "&format=json"}
 	duckurl := strings.Join(duckDuckStringArr, "")
 	//timeout set to one second
-	timeout := time.Duration(time.Second)  
+	timeout := time.Duration(time.Second*5)  
 	client := http.Client{
     	Timeout: timeout,
 	}
