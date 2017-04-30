@@ -15,15 +15,14 @@ func main() {
     // Add a handler on /:querystr
     r.GET("/:querystr", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
         query := p.ByName("querystr")
-        query = strings.Replace(query, " ", "+", -1)
         //using a response channel to be used with goroutines
         response := make(chan string)
         search(query, response)
         resultfirst := <-response
         resultsecond := <-response
-        query = strings.Replace(query, "+", " ", -1)
-        output := "{\"query\": \"%s\",\"results\": {%s,%s}}"
-        output = fmt.Sprintf(output, query, resultfirst, resultsecond)
+        resultthird := <-response
+        output := "{\"query\": \"%s\",\"results\": {%s,%s,%s}}"
+        output = fmt.Sprintf(output, query, resultfirst, resultsecond, resultthird)
         fmt.Fprint(w, output)
     })
     // the server runs here
@@ -39,6 +38,7 @@ func main() {
 func search(query string, ch chan<-string){
 	go duckDuckGoSearch(query, ch)
 	go googleSearch(query, ch)
+	go bingSearch(query, ch)
 }
 
 func duckDuckGoSearch(query string, ch chan<-string){
@@ -112,12 +112,53 @@ func googleSearch(query string, ch chan<-string){
 	    bodyString := string(bodyBytes)
 	    //slicing bodystring for getting first result
 	    posFirst := strings.Index(bodyString, "\"snippet\":")
-	    //12 is added to remove the "Text": part
+	    //8 is added to remove the "Text": part
 	    result := bodyString[posFirst+12:]             
-
 	    posLast := strings.Index(result, "\",")
 	    result = result[:posLast]
 	    jsonString := "\"google\": {\"url\": \"%s\",\"text\": \"%s\"}"
 	    ch <- fmt.Sprintf(jsonString, googleurl, result)
+    }
+}
+
+func bingSearch(query string, ch chan<-string){
+	//URL strings to be printed in json response
+	bingStringArr := []string{"https://api.cognitive.microsoft.com/bing/v5.0/search?q=", query}
+	bingurl := strings.Join(bingStringArr, "")
+	//timeout set to one second
+	timeout := time.Duration(time.Second*5)  
+	client := http.Client{
+    	Timeout: timeout,
+	}
+    // Make a get request
+	s := []string{"https://api.cognitive.microsoft.com/bing/v5.0/search?q=", query}
+	queryString := strings.Join(s, "")
+	req, _ := http.NewRequest("GET", queryString, nil)
+	req.Header.Add("host", "api.cognitive.microsoft.com")
+	req.Header.Add("ocp-apim-subscription-key", "501a27bc21754a58837dce80dd8e8ec5")
+    rs, err := client.Do(req)
+    // Process response
+    if err != nil {
+        //panic(err)
+        msg := "Timeout error, request taking more than 1 second"
+        jsonString := "\"bing\": {\"url\": \"%s\",\"text\": \"%s\"}"
+	    ch <- fmt.Sprintf(jsonString, bingurl, msg)
+    }else{
+    	//close the response at the end of the function
+	    defer rs.Body.Close()  
+	    bodyBytes, err := ioutil.ReadAll(rs.Body)
+	    if err != nil {
+	        panic(err)
+	    }
+	    //bodyString is the json response as a string
+	    bodyString := string(bodyBytes)
+	    //slicing bodystring for getting first result
+	    posFirst := strings.Index(bodyString, "\"snippet\":")
+	    //8 is added to remove the "Text": part
+	    result := bodyString[posFirst+12:]             
+	    posLast := strings.Index(result, "\",")
+	    result = result[:posLast]
+	    jsonString := "\"bing\": {\"url\": \"%s\",\"text\": \"%s\"}"
+	    ch <- fmt.Sprintf(jsonString, bingurl, result)
     }
 }
