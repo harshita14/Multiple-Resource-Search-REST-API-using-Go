@@ -15,12 +15,14 @@ func main() {
     // Add a handler on /:querystr
     r.GET("/:querystr", func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
         query := p.ByName("querystr")
+        query = strings.Replace(query, " ", "+", -1)
         //using a response channel to be used with goroutines
         response := make(chan string)
         search(query, response)
         resultfirst := <-response
         resultsecond := <-response
         resultthird := <-response
+        query = strings.Replace(query, "+", " ", -1)
         output := "{\"query\": \"%s\",\"results\": {%s,%s,%s}}"
         output = fmt.Sprintf(output, query, resultfirst, resultsecond, resultthird)
         fmt.Fprint(w, output)
@@ -112,7 +114,7 @@ func googleSearch(query string, ch chan<-string){
 	    bodyString := string(bodyBytes)
 	    //slicing bodystring for getting first result
 	    posFirst := strings.Index(bodyString, "\"snippet\":")
-	    //8 is added to remove the "Text": part
+	    //12 is added to remove the "Text": part
 	    result := bodyString[posFirst+12:]             
 	    posLast := strings.Index(result, "\",")
 	    result = result[:posLast]
@@ -126,7 +128,7 @@ func bingSearch(query string, ch chan<-string){
 	bingStringArr := []string{"https://api.cognitive.microsoft.com/bing/v5.0/search?q=", query}
 	bingurl := strings.Join(bingStringArr, "")
 	//timeout set to one second
-	timeout := time.Duration(time.Second*5)  
+	timeout := time.Duration(time.Second)  
 	client := http.Client{
     	Timeout: timeout,
 	}
